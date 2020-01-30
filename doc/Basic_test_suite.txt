@@ -1,0 +1,70 @@
+
+/////Model testcase:Enter dynamic address assignment///////////////////
+
+#define IDLE_TIME_ADDR       0x00000000  //Idle time register
+#define CLK_PORT_ADDR        0X00000004  //Push pull, open drain and sda tune count register
+#define B_CAST_ADDR          0x00000008  //Broadcast address register
+#define CMD_TRANS_REG0       0X0000000C  //Host controller Command transfer register lower 32 bits
+#define CMD_TRANS_REG1       0X00000010  //Host controller Command transfer register upper 32 bits
+#define WR_DATA_PORT_ADDR    0x00000014  //Write data port register
+#define RD_DATA_PORT_REG     0x00000018  //Read data port register 
+#define MAS_INT_REG          0x00000038  //Master interrupt status register
+#define DAT_REG0             0x0000004C  //Device addres table register for slave0
+#define DEBUG_REG            0x00000054  //Debug enable register 
+#define DCT_REG0_ADD         0x00000070  //Device characteristics table register [31:0] 
+#define DCT_REG1_ADD         0x00000074  //Device characteristics table register [64:32]
+#define DCT_REG2_ADD         0x00000078  //Device characteristics table register [96:65]
+#define DCT_REG3_ADD         0x0000007C  //Device characteristics table register [128:97]
+#define RESP_RD_REG          0x00000080  //Response descriptor read register
+
+
+initial configurations:
+
+
+       HW_set_32bit_reg(IDLE_TIME_ADDR,0x0111101);  //The time I3C bus needs to be in Idle condition
+       HW_set_32bit_reg(CLK_PORT_ADDR,0x00042008);  //Push pull, open drain and tune count values
+       HW_set_32bit_reg(B_CAST_ADDR,0x000000FC);    //Value of broadcast address 7'h7E with 1'b0  
+       HW_set_32bit_reg(DAT_REG0,0X005b0000);       //I3C dynamic address 5b 
+       HW_set_32bit_reg(DEBUG_REG,0x00);            //Debug mode disable
+
+
+  //Internal Broadcast on command from host controller during initial start
+      HW_set_32bit_reg(CMD_TRANS_REG0,0x00001207); //iba on bit is 1         
+      HW_set_32bit_reg(CMD_TRANS_REG1,0X00000000);
+      
+  //Address assignment command from host controller	  
+	  HW_set_32bit_reg(CMD_TRANS_REG0,0x84000382); // device count 1
+      HW_set_32bit_reg(CMD_TRANS_REG1,0x00000000);
+  
+///////Private write read with stop condition test////////////// 
+    
+             HW_set_32bit_reg(WR_DATA_PORT_ADDR,0x91); //1st byte data 
+             HW_set_32bit_reg(WR_DATA_PORT_ADDR,0x92); //2nd byte data
+
+
+   //Regular wtite command from host conrtoller
+    
+             HW_set_32bit_reg(CMD_TRANS_REG0,0x80000000); //wr command with stop bit
+             HW_set_32bit_reg(CMD_TRANS_REG1,0x00020000); //2 byte data
+
+   //Regular read command from host conrtoller
+   
+             HW_set_32bit_reg(CMD_TRANS_REG0,0xa0000000); //rd command with stop bit
+             HW_set_32bit_reg(CMD_TRANS_REG1,0x00020000); //2 byte data
+
+             HW_get_32bit_reg(RD_DATA_PORT_REG);          //Read data (loop back value)       
+                         
+//////////Get bus chracteristic direct CCC test//////////////////
+  
+   //Immediate command from host controller for ccc
+   
+             HW_set_32bit_reg(CMD_TRANS_REG0,0x0000C701); //command with 'h8e getdcr ccc command
+             HW_set_32bit_reg(CMD_TRANS_REG1,0x00000000); 
+
+   //Regular read command from host controller for ccc data
+    
+	         HW_set_32bit_reg(CMD_TRANS_REG0,0xa0000000); //getdcr ccc data read command
+             HW_set_32bit_reg(CMD_TRANS_REG1,0x00010000); //1 byte data
+			 
+			 HW_get_32bit_reg(RD_DATA_PORT_REG);          //Read data (getdcr ccc data)
+			 
